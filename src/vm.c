@@ -10,6 +10,73 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
+struct node
+{
+    //virtual address, pte
+    //used bit for the array
+    int data;
+    struct node *next;
+}node;
+
+//struct array nodes[CLOCKSIZE];
+
+struct queue
+{
+    int length;
+    int size;
+    node* head;
+    node* tail;
+    node* array;
+}queue;
+
+void qInit(char *virtual_addr)
+{
+    struct queue* q = (struct queue*)malloc(sizeof(struct queue*));
+    q->length = CLOCKSIZE;
+    q->size = 0;
+    q->head= 0;
+    q->tail = q->size -1;
+    q->array = (node*)malloc(q->length * sizeof(node));
+    return q;
+}
+
+int isFull(struct Queue* q)
+{
+    return (q->size == q->length);
+}
+
+// Queue is empty when size is 0
+int isEmpty(struct Queue* q)
+{
+    return (q->size == 0);
+}
+
+// Function to add an item to the queue.
+// It changes tail and size
+void enqueue(struct Queue* q, node node)
+{
+    if (isFull(q))
+        return;
+    q->tail = (q->tail + 1)
+                  % q->length;
+    q->array[q->tail] = node;
+    q->size = q->size + 1;
+    //printf("%d enqueued to queue\n", node);
+}
+ 
+// Function to remove an item from queue.
+// It changes head and size
+void dequeue(struct Queue* q)
+{
+    if (isEmpty(q))
+        return INT_MIN;
+    int item = q->array[q->head];
+    q->head = (q->head + 1)
+                   % q->length;
+    q->size = q->size - 1;
+    //printf("%d dequeued from queue\n", item);
+}
+
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -27,6 +94,14 @@ seginit(void)
   c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
   c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
   lgdt(c->gdt, sizeof(c->gdt));
+}
+
+static 
+enqueue(char *virtual_addr){
+	if (queue.size()< CLOCKSIZE){
+		add to the tail}
+	else{
+
 }
 
 // Return the address of the PTE in page table pgdir
@@ -547,7 +622,7 @@ decrypt(char *virtual_addr){
   // Flush TLB
   struct proc *curproc = myproc();
   switchuvm(curproc);
-
+  //if we get page fault
   // End of ERROR CHECKS
   return 0;
 }
