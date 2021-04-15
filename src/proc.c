@@ -157,6 +157,9 @@ userinit(void)
 
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
+
+// NEW: Encrypt pages in grow proc
+
 int
 growproc(int n)
 {
@@ -164,6 +167,16 @@ growproc(int n)
   struct proc *curproc = myproc();
 
   sz = curproc->sz;
+
+  // NEW: Find virtual address of next page
+  int j = PGROUNDDOWN((int) sz);
+
+  // NEW: Figure out how many pages to encrypt
+  int count = 1;
+  while (PGROUNDDOWN((int) sz + n) > (j + count * PGSIZE)){
+    count++;
+  }
+
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
@@ -173,6 +186,10 @@ growproc(int n)
   }
   curproc->sz = sz;
   switchuvm(curproc);
+
+  // NEW: Encrypt newly allocated page(s)
+  mencrypt((char *) j, count);
+
   return 0;
 }
 
