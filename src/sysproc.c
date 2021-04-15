@@ -120,6 +120,7 @@ sys_getpgtable(void)
 {
   struct pt_entry* entries;
   int num;
+  int wsetOnly;
   
   if(argptr(0, (void*)&entries, sizeof(*entries)) < 0)
     return -1;
@@ -127,7 +128,11 @@ sys_getpgtable(void)
   if(argint(1, &num) < 0)
     return -1;
   
-  return getpgtable(entries, num);
+  
+  if(argint(2, (int*)(&wsetOnly)) < 0)           
+    return -1;
+
+  return getpgtable(entries, num, wsetOnly);
 }
 
 // int dump_rawphymem(uint physical_addr, char * buffer)

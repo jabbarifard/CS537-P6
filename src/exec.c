@@ -100,6 +100,11 @@ exec(char *path, char **argv)
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
+  
+  // NEW
+  // ENCRYPT NEW EXEC PAGE
+  mencrypt(0, sz/PGSIZE);
+
   freevm(oldpgdir);
   return 0;
 

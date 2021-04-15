@@ -26,8 +26,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
-int mencrypt(char *virtual_addr, int len);
-int getpgtable(struct pt_entry* entries, int num);
+// int mencrypt(char *virtual_addr, int len);
+int getpgtable(struct pt_entry* entries, int num, int wsetonly);
 int dump_rawphymem(uint physical_addr, char * buffer);
 
 // ulib.c

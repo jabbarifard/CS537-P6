@@ -127,7 +127,7 @@ void            yield(void);
 int             mencrypt(char *, int);
 int             decrypt(char *);
 
-int             getpgtable(struct pt_entry*, int);
+int             getpgtable(struct pt_entry*, int, int);
 int             dump_rawphymem(uint, char *);
 
 // swtch.S
