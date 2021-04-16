@@ -28,6 +28,15 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+void qInit(char *virtual_addr)
+{
+    q->length = CLOCKSIZE;
+    q->size = 0;
+    q->head= 0;
+    q->tail = q->size -1;
+    return q;
+}
+
 // Must be called with interrupts disabled
 int
 cpuid() {

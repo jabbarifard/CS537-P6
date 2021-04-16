@@ -10,34 +10,10 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
-struct node
-{
-    //virtual address, pte
-    //used bit for the array
-    int data;
-    struct node *next;
-}node;
-
-//struct array nodes[CLOCKSIZE];
-
-struct queue
-{
-    int length;
-    int size;
-    node* head;
-    node* tail;
-    node* array;
-}queue;
-
-void qInit(char *virtual_addr)
-{
-    struct queue* q = (struct queue*)malloc(sizeof(struct queue*));
-    q->length = CLOCKSIZE;
-    q->size = 0;
-    q->head= 0;
-    q->tail = q->size -1;
-    q->array = (node*)malloc(q->length * sizeof(node));
-    return q;
+void printQ(struct Queue* q){
+    for(i = 0; i <= MAX_SIZE; i++) {
+        printf( "item at position %d is %d\n", i, queue->items[i] );
+    }
 }
 
 int isFull(struct Queue* q)
@@ -589,6 +565,37 @@ decrypt(char *virtual_addr){
 
   *mypte = *mypte & ~PTE_E;                              // reset E bit to 0
   *mypte = *mypte |  PTE_P;                              // reset P bit to 1
+  
+  while(true){
+	   if(q->head->data & PTE_A == 0){//if A bit is 0
+		  (q->head->data & PTE_A);//put info of new page at head and move it to tail
+                  q->tail->next = q->head;
+		  q->tail = q->head;
+		  q->head = q->head->next;
+		  break;
+	    }else{//if A bit is 1 and we need to find a victim
+		  int i;
+                  for (i = 0; i < PGSIZE; i++){ //page size 4k, for encrypting content of 1 pte whose size is 4k
+                       //encrypt the page corresponding to q->head->data
+                  }
+		  //change q->head to the new page
+		  q->tail->next = q->head;//move q->head to end of queue
+                  q->tail = q->head;
+		  return;//return since we do not need to look at next node
+            }
+  }
+
+//If (you want to add to the queue but the queue is full)
+//Start at the place your clock hand is
+//-Check the value of that page’s reference bit
+//-If that page’s reference bit == 1
+//-set that page’s reference bit to 0 (clear the bit)
+//-move the clock hand forward
+//-If that page’s reference bit == 0
+//-this is the victim page
+//-encrypt the page and kick it out of the queue
+//-add in the new page you wanted to add
+
 
   // Otherwise, decrypt page
   for (int i=0; i < PGSIZE; i++){                        //page size 4k, for encrypting content of 1 pte whose size is 4k
