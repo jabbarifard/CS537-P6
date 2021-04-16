@@ -57,7 +57,6 @@ struct proc {
   // NEW: P6
 
   struct Queue *q;             // queue
-  // struct Node Nodes[CLOCKSIZE];        // node
 };
 
 struct Node
@@ -65,8 +64,6 @@ struct Node
   int data;
   struct Node *next;
 };
-
-//struct array nodes[CLOCKSIZE];
 
 struct Queue
 {

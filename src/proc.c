@@ -207,6 +207,12 @@ growproc(int n)
   if(alloc != 0)
     mencrypt((char *) j, count);
 
+
+  old_sz = old_sz;
+  dealloc = dealloc;
+
+  /*
+  
   // NEW: Remove deallocated page(s) from clock queue
   if(dealloc != 0)
   {
@@ -234,6 +240,8 @@ growproc(int n)
     }
 
   }
+
+  */
 
   return 0;
 }
