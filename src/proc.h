@@ -53,24 +53,27 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  struct queue *q;             //queue
-  struct node nodes[8];        //node
+
+  // NEW: P6
+
+  struct Queue *q;             // queue
+  // struct Node Nodes[CLOCKSIZE];        // node
 };
 
-struct node
+struct Node
 {
-    int data;
-    struct node *next;
+  int data;
+  struct Node *next;
 };
 
 //struct array nodes[CLOCKSIZE];
 
-struct queue
+struct Queue
 {
-    int size;
-    int length;
-    node* head;
-    node* tail;
+  int size;
+  int length;
+  struct Node* head;
+  struct Node* tail;
 };
 
 

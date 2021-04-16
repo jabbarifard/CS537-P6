@@ -11,6 +11,8 @@ struct stat;
 struct superblock;
 
 struct pt_entry;
+struct Queue;
+struct Node;
 
 // bio.c
 void            binit(void);
@@ -129,6 +131,10 @@ int             decrypt(char *);
 
 int             getpgtable(struct pt_entry*, int, int);
 int             dump_rawphymem(uint, char *);
+
+
+int             inQueue(struct Queue*, int);
+int             remove (struct Queue*, int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

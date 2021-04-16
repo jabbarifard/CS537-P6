@@ -8,6 +8,7 @@
 #include "spinlock.h"
 
 #include "ptentry.h"
+#include <stddef.h>
 
 struct {
   struct spinlock lock;
@@ -30,11 +31,11 @@ pinit(void)
 
 void qInit(char *virtual_addr)
 {
-    q->length = CLOCKSIZE;
-    q->size = 0;
-    q->head= 0;
-    q->tail = q->size -1;
-    return q;
+  struct Queue* q = myproc()->q;
+  q->length = CLOCKSIZE;
+  q->size = 0;
+  q->head = NULL;
+  q->tail = NULL;
 }
 
 // Must be called with interrupts disabled
@@ -186,10 +187,16 @@ growproc(int n)
     count++;
   }
 
+  int alloc = 0;
+  int dealloc = 0;
+  int old_sz = sz;
+
   if(n > 0){
+    alloc = 1;
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   } else if(n < 0){
+    dealloc = 1;
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   }
@@ -197,7 +204,36 @@ growproc(int n)
   switchuvm(curproc);
 
   // NEW: Encrypt newly allocated page(s)
-  mencrypt((char *) j, count);
+  if(alloc != 0)
+    mencrypt((char *) j, count);
+
+  // NEW: Remove deallocated page(s) from clock queue
+  if(dealloc != 0)
+  {
+    struct Queue* q = myproc()->q;
+
+    // Check if an entire page was deallocated
+    if( n >= PGSIZE) 
+    {
+      // Remove all pages that were deallocated
+      int count = n / PGSIZE;
+      if ( count > 0 )
+      {
+        // Search and remove target page from queue
+        int target = PGROUNDDOWN( old_sz - count * PGSIZE );
+
+        // method to remove VPN from clock queue
+        if(inQueue(q, target) == 1){
+          remove(q, target);
+        }
+
+
+        // Repeat for all pages
+        count--;
+      }
+    }
+
+  }
 
   return 0;
 }

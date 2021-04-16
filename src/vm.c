@@ -7,50 +7,146 @@
 #include "proc.h"
 #include "elf.h"
 
+#include <stddef.h>
+#include "ptentry.h"
+
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
+
 void printQ(struct Queue* q){
-    for(i = 0; i <= MAX_SIZE; i++) {
-        printf( "item at position %d is %d\n", i, queue->items[i] );
-    }
+  int i;
+  struct Node* node = q->head;
+  for(i = 0; i <= CLOCKSIZE; i++) {
+    cprintf( "item at position %d is %d\n", i, node->data);
+    node = node->next;
+  }
 }
 
 int isFull(struct Queue* q)
 {
-    return (q->size == q->length);
+  return (q->size == q->length);
 }
 
 // Queue is empty when size is 0
 int isEmpty(struct Queue* q)
 {
-    return (q->size == 0);
+  return (q->size == 0);
 }
 
-// Function to add an item to the queue.
-// It changes tail and size
-void enqueue(struct Queue* q, node node)
+// Function to add an item to the tail of the queue
+int enqueue(struct Queue* q, struct Node* node)
 {
-    if (isFull(q))
-        return;
-    q->tail = (q->tail + 1)
-                  % q->length;
-    q->array[q->tail] = node;
-    q->size = q->size + 1;
-    //printf("%d enqueued to queue\n", node);
+  if (isFull(q))
+      return -1;
+
+  // q->tail = (q->tail + 1) % q->length;
+  // q->array[q->tail] = node;
+  // q->size = q->size + 1;
+
+  q->tail->next = node;
+  q->tail = node;
+  q->size++;
+
+  return 1;
+  //printf("%d enqueued to queue\n", node);
 }
  
-// Function to remove an item from queue.
-// It changes head and size
-void dequeue(struct Queue* q)
+// Function to remove an item from the head of queue
+int dequeue(struct Queue* q)
 {
     if (isEmpty(q))
-        return INT_MIN;
-    int item = q->array[q->head];
-    q->head = (q->head + 1)
-                   % q->length;
-    q->size = q->size - 1;
+      return -1;
+
+    // int item = q->array[q->head];
+    // q->head = (q->head + 1) % q->length;
+    // q->size = q->size - 1;
+
+    int VPN = q->head->data;
+    q->head = q->head->next;
+    q->size--;
+
+    return VPN;
     //printf("%d dequeued from queue\n", item);
+}
+
+// Move from head to tail
+int sendToTail(struct Queue* q)
+{
+    if (isEmpty(q))
+      return -1;
+
+    // Point tail to head
+    q->tail->next = q->head;
+    q->tail = q->tail->next;
+    q->head = q->head->next;
+
+    // Set tail's next pointer to NULL
+    q->tail = NULL;
+
+    return 0;
+    //printf("%d dequeued from queue\n", item);
+}
+
+// Return 1 if VPN is in queue, else 0
+int inQueue(struct Queue* q, int VPN){
+
+  int found = 0;
+  struct Node* curr = q->head;
+
+  // Scan through queue
+  while(curr->next != NULL)
+  {
+    // Check for any matches in queue
+    if(curr->data == VPN)
+      found = 1;
+
+    curr = curr->next;
+  }
+
+  // Return status
+  return found;
+}
+
+// Remove target from queue
+int remove(struct Queue* q, int VPN){
+
+  int removed = 0;
+  struct Node* curr = q->head;
+  struct Node* prev = curr;
+
+  // 1 node in queue
+  if(q->length == 1)
+  {
+    q->head = NULL;
+    q->tail = NULL;
+    return 1;
+  }
+
+
+  // >1 node in queue
+  while(curr->next != NULL)
+  {
+    // Check for any matches in queue
+    if(curr->data == VPN){
+      removed = 1;
+
+      if(q->tail->data == curr->data){
+        q->tail = prev;
+      }
+      prev->next = curr->next;
+      curr->next = NULL;
+
+      // Return status (success)
+      return removed;
+
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+
+  // Return status (error)
+  return removed;
 }
 
 // Set up CPU's kernel segment descriptors.
@@ -70,14 +166,6 @@ seginit(void)
   c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
   c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
   lgdt(c->gdt, sizeof(c->gdt));
-}
-
-static 
-enqueue(char *virtual_addr){
-	if (queue.size()< CLOCKSIZE){
-		add to the tail}
-	else{
-
 }
 
 // Return the address of the PTE in page table pgdir
@@ -487,7 +575,6 @@ mencrypt(char *virtual_addr, int len)
 
   int slider = PGROUNDDOWN((int) virtual_addr);
 
-
   int lenCount = 0;
   for (int i = 0; i < len; i++) {
     // Each pagetable in pde_t
@@ -566,35 +653,47 @@ decrypt(char *virtual_addr){
   *mypte = *mypte & ~PTE_E;                              // reset E bit to 0
   *mypte = *mypte |  PTE_P;                              // reset P bit to 1
   
-  while(true){
-	   if(q->head->data & PTE_A == 0){//if A bit is 0
-		  (q->head->data & PTE_A);//put info of new page at head and move it to tail
-                  q->tail->next = q->head;
-		  q->tail = q->head;
-		  q->head = q->head->next;
-		  break;
-	    }else{//if A bit is 1 and we need to find a victim
+
+  /*
+
+  struct Queue* q = myproc()->q;
+  
+  while(0 == 0){
+    if(q->head->data & PTE_A == 0){ //if A bit is 0
+      (q->head->data & PTE_A);      //put info of new page at head and move it to tail
+      q->tail->next = q->head;
+      q->tail = q->head;
+      q->head = q->head->next;
+      break;
+    } else {//if A bit is 1 and we need to find a victim
 		  int i;
-                  for (i = 0; i < PGSIZE; i++){ //page size 4k, for encrypting content of 1 pte whose size is 4k
-                       //encrypt the page corresponding to q->head->data
-                  }
-		  //change q->head to the new page
-		  q->tail->next = q->head;//move q->head to end of queue
-                  q->tail = q->head;
-		  return;//return since we do not need to look at next node
-            }
+      //page size 4k, for encrypting content of 1 pte whose size is 4k
+      for (i = 0; i < PGSIZE; i++){
+        //encrypt the page corresponding to q->head->data
+      }
+		  // change q->head to the new page
+		  q->tail->next = q->head;
+
+      // move q->head to end of queue
+      q->tail = q->head;
+
+      // return since we do not need to look at next node
+		  return;
+    }
   }
 
-//If (you want to add to the queue but the queue is full)
-//Start at the place your clock hand is
-//-Check the value of that page’s reference bit
-//-If that page’s reference bit == 1
-//-set that page’s reference bit to 0 (clear the bit)
-//-move the clock hand forward
-//-If that page’s reference bit == 0
-//-this is the victim page
-//-encrypt the page and kick it out of the queue
-//-add in the new page you wanted to add
+  */
+
+  //If (you want to add to the queue but the queue is full)
+  //Start at the place your clock hand is
+  //-Check the value of that page’s reference bit
+  //-If that page’s reference bit == 1
+  //-set that page’s reference bit to 0 (clear the bit)
+  //-move the clock hand forward
+  //-If that page’s reference bit == 0
+  //-this is the victim page
+  //-encrypt the page and kick it out of the queue
+  //-add in the new page you wanted to add
 
 
   // Otherwise, decrypt page
@@ -647,8 +746,13 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
         (entries + i)->writable  = (*mypte & PTE_W) >> 1;
         (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
         // NEW
-        (entries + i)->user = (*mypte & PTE_A) >> 9;
-        (entries + i)->ref  = (*mypte & PTE_A) >> 9;
+
+        // Check working set for VPN
+        struct Queue* q = myproc()->q;
+        int found = inQueue(q, slider);
+
+        (entries + i)->user = found;
+        (entries + i)->ref  = (*mypte & PTE_A) >> 6;
       }
 
       // Go to next highest page
@@ -657,22 +761,29 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
 
   } else {
     // Filter by working set
-    
     for(i = 0; i < num; i++){
       // Copy information from current page
       pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
       if (uva2ka(pgdir, (char*) slider) != 0){
-        valid++;
-    
-        (entries + i)->pdx       = PDX(slider);
-        (entries + i)->ptx       = PTX(slider);
-        (entries + i)->ppage     = (PTE_ADDR(*mypte)) >> PTXSHIFT;
-        (entries + i)->present   = (*mypte & PTE_P) >> 0;
-        (entries + i)->writable  = (*mypte & PTE_W) >> 1;
-        (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
-        // NEW
-        (entries + i)->user = (*mypte & PTE_A) >> 9;
-        (entries + i)->ref  = (*mypte & PTE_A) >> 9;
+        
+        // Check working set for VPN
+        struct Queue* q = myproc()->q;
+        int found = inQueue(q, slider);
+        if(found)
+        {
+          valid++;
+      
+          (entries + i)->pdx       = PDX(slider);
+          (entries + i)->ptx       = PTX(slider);
+          (entries + i)->ppage     = (PTE_ADDR(*mypte)) >> PTXSHIFT;
+          (entries + i)->present   = (*mypte & PTE_P) >> 0;
+          (entries + i)->writable  = (*mypte & PTE_W) >> 1;
+          (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
+          // NEW
+          (entries + i)->user = 1;
+          (entries + i)->ref  = (*mypte & PTE_A) >> 6;
+        }
+
       }
 
       // Go to next highest page
