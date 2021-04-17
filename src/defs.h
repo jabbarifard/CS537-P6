@@ -124,6 +124,7 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void            qInit(struct Queue* q);
 
 // vm.c
 int             mencrypt(char *, int);

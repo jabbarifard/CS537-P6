@@ -29,13 +29,15 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
-void qInit(char *virtual_addr)
+void qInit(struct Queue* q)
 {
-  struct Queue* q = myproc()->q;
   q->length = CLOCKSIZE;
   q->size = 0;
   q->head = NULL;
   q->tail = NULL;
+  for(int i=0; i<q->length; i++){
+	  q->arr[i].data = -1;
+  }
 }
 
 // Must be called with interrupts disabled
@@ -123,7 +125,7 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-
+  qInit(&(p->q));
   return p;
 }
 
@@ -182,10 +184,10 @@ growproc(int n)
   int j = PGROUNDDOWN((int) sz);
 
   // NEW: Figure out how many pages to encrypt
-  int count = 1;
-  while (PGROUNDDOWN((int) sz + n) > (j + count * PGSIZE)){
-    count++;
-  }
+  int count = n/PGSIZE;
+  //while (PGROUNDDOWN((int) sz + n) > (j + count * PGSIZE)){
+    //count++;
+  //}
 
   int alloc = 0;
   int dealloc = 0;
@@ -204,8 +206,10 @@ growproc(int n)
   switchuvm(curproc);
 
   // NEW: Encrypt newly allocated page(s)
-  if(alloc != 0)
+  if(alloc != 0){
     mencrypt((char *) j, count);
+    cprintf("%x %d\n", j, count);
+  }
 
 
   old_sz = old_sz;
@@ -289,6 +293,8 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&ptable.lock);
+
+  qInit(&np->q);
 
   return pid;
 }

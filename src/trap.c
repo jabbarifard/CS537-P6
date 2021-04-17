@@ -48,7 +48,6 @@ trap(struct trapframe *tf)
 
   if (tf->trapno == T_PGFLT) {               // rcr2() trigers the trap by page fault returns address that triggers pf
 	  if (decrypt((char*) rcr2()) == 0){       // 0 = success decryption
-		  //enqueue((char*) rcr2()); // add new decrypted page to the queue
 		  return;                                // otherwise continue to switch
 	  }
   }

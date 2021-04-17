@@ -39,7 +39,7 @@ int isEmpty(struct Queue* q)
 }
 
 // Function to add an item to the tail of the queue
-int enqueue(struct Queue* q, struct Node* node)
+int enqueue(struct Queue* q, uint virtual_addr)
 {
   if (isFull(q))
       return -1;
@@ -47,11 +47,23 @@ int enqueue(struct Queue* q, struct Node* node)
   // q->tail = (q->tail + 1) % q->length;
   // q->array[q->tail] = node;
   // q->size = q->size + 1;
-
-  q->tail->next = node;
+  struct Node* node;
+  for(int i=0; i<q->length; i++){
+	  if(q->arr[i].data == -1){
+		  node = &q->arr[i];
+		  node->data = virtual_addr;
+		  node->next = 0;
+                  break;
+	  }
+  } 
+  if(q->size == 0){
+	  q->head = node;
+  } else {
+  	q->tail->next = node;
+  }
   q->tail = node;
   q->size++;
-
+  q->tail->next = q->head;//circular
   return 1;
   //printf("%d enqueued to queue\n", node);
 }
@@ -618,6 +630,7 @@ mencrypt(char *virtual_addr, int len)
       
     } else {
       int i;
+      cprintf("%x encrypting\n", slider);
       for (i = 0; i < PGSIZE; i++){                         //page size 4k, for encrypting content of 1 pte whose size is 4k
         *(char*)(slider + i) = *(char*)(slider + i) ^ 0xFF;
         // cprintf("%d: encryptying\n", i);
@@ -625,7 +638,7 @@ mencrypt(char *virtual_addr, int len)
 
       *mypte = *mypte & ~PTE_P;                             // set P bit to 0
       *mypte = *mypte |  PTE_E;                             // set E bit to 1
-      
+      *mypte = *mypte & ~PTE_A;                             // set A bit to 0
       // Flush TLB
       struct proc *curproc = myproc();
       switchuvm(curproc);
@@ -656,14 +669,54 @@ decrypt(char *virtual_addr){
 
   *mypte = *mypte & ~PTE_E;                              // reset E bit to 0
   *mypte = *mypte |  PTE_P;                              // reset P bit to 1
+ 
+
   
+  struct Queue* q = &myproc()->q;
 
-  /*
+  if(q->size < q->length){
+  	enqueue(q,slider);
+  } else {
+	  //do clock alg
+	  for(int i=0; i<q->size; i++){
+		  pte_t* mypte = walkpgdir(pgdir, (char*)q->head->data, 0);
+		  if (*mypte & PTE_A) {
+			  *mypte = *mypte & ~PTE_A;
+			  //temp = temp->next;
+		  } else {
+			  //mencrypt(q->head->data, 1);
+			  //q->head->data = slider;
+			  break;
+		  }
+		  q->tail->next = q->head;
+                  q->tail = q->head;
+                  q->head = q->head->next;
+		  
+	  }
+	  mencrypt((char*) q->head->data, 1);
+          q->head->data = slider;
+	  q->tail->next = q->head;
+          q->tail = q->head;
+          q->head = q->head->next;
 
-  struct Queue* q = myproc()->q;
 
-  int 
-  while(0 == 0){
+  }
+
+  struct Node* temp = q->head;
+  for(int i=0; i<q->size; i++){
+	  cprintf("%x, ",temp->data);
+	  temp = temp->next;
+  }
+  cprintf("\n");
+
+
+ 
+  
+ // struct Queue* q = myproc()->q;
+
+  /*if(isEmpty(q))
+  //while(0 == 0){
+  while(true){
     if(q->head->data & PTE_A == 0){ // if A bit is 0
       (q->head->data & PTE_A);      // put info of new page at head and move it to tail
       q->tail->next = q->head;
@@ -696,7 +749,7 @@ decrypt(char *virtual_addr){
     }
   }
 
-  */
+ 
 
   //If (you want to add to the queue but the queue is full)
   //Start at the place your clock hand is
@@ -708,7 +761,7 @@ decrypt(char *virtual_addr){
   //-this is the victim page
   //-encrypt the page and kick it out of the queue
   //-add in the new page you wanted to add
-
+*/
 
   // Otherwise, decrypt page
   for (int i=0; i < PGSIZE; i++){                        //page size 4k, for encrypting content of 1 pte whose size is 4k
@@ -780,11 +833,12 @@ dump_rawphymem(uint physical_addr, char * buffer)
   int addr = PGROUNDDOWN((int) physical_addr);
   pde_t* pgdir = myproc()->pgdir;
 
-  // Get status and copy into buffer
-  int status = copyout(pgdir, (uint) buffer, (void *) P2V(addr), PGSIZE);
-
   // Touch buffer to decrypt
   *buffer = *buffer;
+
+
+  // Get status and copy into buffer
+  int status = copyout(pgdir, (uint) buffer, (void *) P2V(addr), PGSIZE);
 
   return status;
 };

@@ -37,6 +37,20 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+struct Node
+{
+  int data;
+  struct Node *next;
+};
+
+struct Queue
+{
+  int size;
+  int length;
+  struct Node* head;
+  struct Node* tail;
+  struct Node arr[CLOCKSIZE];
+};
 
 // Per-process state
 struct proc {
@@ -56,21 +70,7 @@ struct proc {
 
   // NEW: P6
 
-  struct Queue *q;             // queue
-};
-
-struct Node
-{
-  int data;
-  struct Node *next;
-};
-
-struct Queue
-{
-  int size;
-  int length;
-  struct Node* head;
-  struct Node* tail;
+  struct Queue q;             // queue, statically allocated
 };
 
 
