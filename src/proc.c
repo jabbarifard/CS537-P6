@@ -185,9 +185,6 @@ growproc(int n)
 
   // NEW: Figure out how many pages to encrypt
   int count = n/PGSIZE;
-  //while (PGROUNDDOWN((int) sz + n) > (j + count * PGSIZE)){
-    //count++;
-  //}
 
   int alloc = 0;
   int dealloc = 0;
@@ -208,12 +205,32 @@ growproc(int n)
   // NEW: Encrypt newly allocated page(s)
   if(alloc != 0){
     mencrypt((char *) j, count);
-    cprintf("%x %d\n", j, count);
+    // cprintf("%x %d\n", j, count);
+  }
+
+  // New: Remove deallocated page(s) from queue
+  
+  old_sz = old_sz;
+  dealloc = dealloc;
+
+  if(dealloc != 0){
+
+    struct Queue* q = &myproc()->q;
+    // Check each page that was deallocated in queue
+    for(int i = 0; i < count; i++)
+    {
+      
+      int slider = PGROUNDDOWN(old_sz - PGSIZE * i);
+      if(inQueue(q, slider))
+      {
+        remove(q, slider);
+      }
+
+    }
+
   }
 
 
-  old_sz = old_sz;
-  dealloc = dealloc;
 
   /*
   
@@ -291,6 +308,18 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+
+  // NEW: Deep copy the clock queue from parent to child
+  np->q.size   = curproc->q.size;
+  np->q.length = curproc->q.length;
+
+  for(int j = 0; j < np->q.size; j++){
+    np->q.arr[j] = curproc->q.arr[j];
+  }
+  
+  np->q.head = &np->q.arr[0];
+  np->q.tail = &np->q.arr[np->q.size];
+
 
   release(&ptable.lock);
 

@@ -111,13 +111,14 @@ int inQueue(struct Queue* q, int VPN){
   struct Node* curr = q->head;
 
   // Scan through queue
-  while(curr->next != NULL)
+  for(int count = 0; count < q->size; count++)
   {
     // Check for any matches in queue
     if(curr->data == VPN)
       found = 1;
 
     curr = curr->next;
+    count++;
   }
 
   // Return status
@@ -671,85 +672,51 @@ decrypt(char *virtual_addr){
   *mypte = *mypte |  PTE_P;                              // reset P bit to 1
  
 
-  
+  // NEW: Queue using clock algorithm
   struct Queue* q = &myproc()->q;
-
   if(q->size < q->length){
+    // If space, enqueue
   	enqueue(q,slider);
   } else {
-	  //do clock alg
-	  for(int i=0; i<q->size; i++){
+    // Search for page to evict using clock algorithm
+	  for(int i = 0; i < q->size; i++){
 		  pte_t* mypte = walkpgdir(pgdir, (char*)q->head->data, 0);
+      
+      // Check ref bit
 		  if (*mypte & PTE_A) {
+        // Clear PTE_A / ref bit if 1
 			  *mypte = *mypte & ~PTE_A;
-			  //temp = temp->next;
 		  } else {
-			  //mencrypt(q->head->data, 1);
-			  //q->head->data = slider;
+        // Page to evict is at head
 			  break;
 		  }
+
+      // Move head to tail
 		  q->tail->next = q->head;
-                  q->tail = q->head;
-                  q->head = q->head->next;
-		  
-	  }
-	  mencrypt((char*) q->head->data, 1);
-          q->head->data = slider;
-	  q->tail->next = q->head;
-          q->tail = q->head;
-          q->head = q->head->next;
-
-
-  }
-
-  struct Node* temp = q->head;
-  for(int i=0; i<q->size; i++){
-	  cprintf("%x, ",temp->data);
-	  temp = temp->next;
-  }
-  cprintf("\n");
-
-
- 
-  
- // struct Queue* q = myproc()->q;
-
-  /*if(isEmpty(q))
-  //while(0 == 0){
-  while(true){
-    if(q->head->data & PTE_A == 0){ // if A bit is 0
-      (q->head->data & PTE_A);      // put info of new page at head and move it to tail
-      q->tail->next = q->head;
       q->tail = q->head;
       q->head = q->head->next;
-      break;
-    } else { // If A bit is 1 and we need to find a victim
-		  int i;
-      //page size 4k, for encrypting content of 1 pte whose size is 4k
-      for (i = 0; i < PGSIZE; i++){
-        // encrypt the page corresponding to q->head->data
-      }
-      
-      // Clear PTE_A
-      int target = q->head->data;
-      pte_t* targetPTE = walkpgdir(pgdir, (void*) data, 0);
-      targetPTE &= ~PTE_A;
+		  
+	  }
 
-      // Send head to tail
-      sendToTail(q);
+    // Encrypt evicted page
+	  mencrypt((char*) q->head->data, 1);
 
-		  // change q->head to the new page
-		  // q->tail->next = q->head;
+    // Add in new page to slider
+    q->head->data = slider;
 
-      // move q->head to end of queue
-      // q->tail = q->head;
+    // Move head to tail
+	  q->tail->next = q->head;
+    q->tail = q->head;
+    q->head = q->head->next;
 
-      // return since we do not need to look at next node (?)
-		  // break;
-    }
   }
 
- 
+  // struct Node* temp = q->head;
+  // for(int i=0; i<q->size; i++){
+	//   cprintf("%x, ",temp->data);
+	//   temp = temp->next;
+  // }
+  // cprintf("\n");
 
   //If (you want to add to the queue but the queue is full)
   //Start at the place your clock hand is
@@ -761,17 +728,18 @@ decrypt(char *virtual_addr){
   //-this is the victim page
   //-encrypt the page and kick it out of the queue
   //-add in the new page you wanted to add
-*/
 
   // Otherwise, decrypt page
-  for (int i=0; i < PGSIZE; i++){                        //page size 4k, for encrypting content of 1 pte whose size is 4k
+  // page size 4k, for encrypting content of 1 pte whose size is 4k
+  for (int i=0; i < PGSIZE; i++){                        
     *(char*)(slider + i) = *(char*)(slider + i) ^ 0xFF;
   }
 
   // Flush TLB
   struct proc *curproc = myproc();
   switchuvm(curproc);
-  //if we get page fault
+  // if we get page fault
+
   // End of ERROR CHECKS
   return 0;
 }
@@ -796,7 +764,12 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
 
   int i = 0;
   int valid = 0;
- for(i = 0; i < num; i++){
+
+  struct Queue* q = &myproc()->q;
+
+  if(wsetOnly == 0) {
+
+    for(i = 0; i < num; i++){
       // Copy information from current page
       pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
       if (uva2ka(pgdir, (char*) slider) != 0){
@@ -815,13 +788,40 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
         // int found = inQueue(q, slider);
         // (entries + i)->user = found;
 
-        (entries + i)->user = (*mypte & PTE_A) >> 6;
-        (entries + i)->ref  = (*mypte & PTE_A) >> 6;
+        (entries + i)->user      = inQueue(q, slider);
+        (entries + i)->ref       = (*mypte & PTE_A) >> 5;
       }
 
       // Go to next highest page
       slider -= PGSIZE;
     }
+
+  } else {
+
+    // ??? 
+    valid++;
+    // not sure why this works
+    
+    for(i = 0; i < num; i++){
+      // Filter by pages in queue
+      if(inQueue(q, slider) == 1) {
+        pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
+        if (uva2ka(pgdir, (char*) slider) != 0){
+          valid++;
+          (entries + i)->pdx       = PDX(slider);
+          (entries + i)->ptx       = PTX(slider);
+          (entries + i)->ppage     = (PTE_ADDR(*mypte)) >> PTXSHIFT;
+          (entries + i)->present   = (*mypte & PTE_P) >> 0;
+          (entries + i)->writable  = (*mypte & PTE_W) >> 1;
+          (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
+          (entries + i)->user      = 1;
+          (entries + i)->ref       = (*mypte & PTE_A) >> 5;
+        }
+      }
+      slider -= PGSIZE;
+    }
+
+  }
 
   return valid;
 };
