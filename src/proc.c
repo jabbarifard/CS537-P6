@@ -184,8 +184,12 @@ growproc(int n)
   int j = PGROUNDDOWN((int) sz);
 
   // NEW: Figure out how many pages to encrypt
-  int count = n/PGSIZE;
-
+  int count = 0;
+  if(n<0){
+   count = (-1)* n/PGSIZE;
+   }else{
+     count = n/PGSIZE;
+   }
   int alloc = 0;
   int dealloc = 0;
   int old_sz = sz;
@@ -217,10 +221,11 @@ growproc(int n)
 
     struct Queue* q = &myproc()->q;
     // Check each page that was deallocated in queue
-    for(int i = 0; i < count; i++)
+    for(int i = 1; i <= count; i++)
     {
       
       int slider = PGROUNDDOWN(old_sz - PGSIZE * i);
+      cprintf("slider %x", slider);
       if(inQueue(q, slider))
       {
         remove(q, slider);
@@ -313,7 +318,7 @@ fork(void)
   np->q.size   = curproc->q.size;
   np->q.length = curproc->q.length;
 
-  for(int j = 0; j < np->q.size; j++){
+  for(int j = 0; j < np->q.size; j++){//head to tail, then insert child to the list, cant copy the pointers, just copy the virtual-addr
     np->q.arr[j] = curproc->q.arr[j];
   }
   

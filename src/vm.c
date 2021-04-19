@@ -118,7 +118,7 @@ int inQueue(struct Queue* q, int VPN){
       found = 1;
 
     curr = curr->next;
-    count++;
+    //count++;
   }
 
   // Return status
@@ -711,12 +711,12 @@ decrypt(char *virtual_addr){
 
   }
 
-  // struct Node* temp = q->head;
-  // for(int i=0; i<q->size; i++){
-	//   cprintf("%x, ",temp->data);
-	//   temp = temp->next;
-  // }
-  // cprintf("\n");
+   struct Node* temp = q->head;
+   for(int i=0; i<q->size; i++){
+	   cprintf("%x, ",temp->data);
+	   temp = temp->next;
+   }
+   cprintf("\n");
 
   //If (you want to add to the queue but the queue is full)
   //Start at the place your clock hand is
@@ -799,10 +799,10 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
   } else {
 
     // ??? 
-    valid++;
+    // valid++;
     // not sure why this works
     
-    for(i = 0; i < num; i++){
+    for(i = 0; i < num;){//number of entries, and we can have more
       // Filter by pages in queue
       if(inQueue(q, slider) == 1) {
         pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
@@ -816,7 +816,11 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
           (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
           (entries + i)->user      = 1;
           (entries + i)->ref       = (*mypte & PTE_A) >> 5;
+          i++;
         }
+      }
+      if(slider == 0){
+        break;
       }
       slider -= PGSIZE;
     }
