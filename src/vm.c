@@ -18,7 +18,7 @@ void printQ(struct Queue* q){
   int i;
   struct Node* node = q->head;
   for(i = 0; i <= CLOCKSIZE; i++) {
-    cprintf( "item at position %d is %d\n", i, node->data);
+    // cprintf( "item at position %d is %d\n", i, node->data);
     node = node->next;
   }
 }
@@ -633,7 +633,7 @@ mencrypt(char *virtual_addr, int len)
       
     } else {
       int i;
-      cprintf("%x encrypting\n", slider);
+      // cprintf("%x encrypting\n", slider);
       for (i = 0; i < PGSIZE; i++){                         //page size 4k, for encrypting content of 1 pte whose size is 4k
         *(char*)(slider + i) = *(char*)(slider + i) ^ 0xFF;
         // cprintf("%d: encryptying\n", i);
@@ -715,10 +715,10 @@ decrypt(char *virtual_addr){
 
    struct Node* temp = q->head;
    for(int i=0; i<q->size; i++){
-	   cprintf("%x, ",temp->data);
+	  //  cprintf("%x, ",temp->data);
 	   temp = temp->next;
    }
-   cprintf("\n");
+  //  cprintf("\n");
 
   //If (you want to add to the queue but the queue is full)
   //Start at the place your clock hand is
@@ -767,7 +767,7 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
   int i = 0;
   int valid = 0;
 
-  struct Queue* q = &myproc()->q;
+  // struct Queue* q = &myproc()->q;
 
   if(wsetOnly == 0) {
 
@@ -791,7 +791,7 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
         // int found = inQueue(q, slider);
         // (entries + i)->user = found;
 
-        (entries + i)->user      = inQueue(q, slider);
+        (entries + i)->user      = (*mypte & PTE_E) >> 9;
         (entries + i)->ref       = (*mypte & PTE_A) >> 5;
       }
 
@@ -800,23 +800,22 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
     }
 
   } else {
-
-    for(i = 0; i < num;){//number of entries, and we can have more
+    i = 0;
+    // number of entries, and we can have more
+    while(i < num){
       // Filter by pages in queue
-      if(inQueue(q, slider) == 1) {
-        pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
-        if (uva2ka(pgdir, (char*) slider) != 0){
-          valid++;
-          (entries + i)->pdx       = PDX(slider);
-          (entries + i)->ptx       = PTX(slider);
-          (entries + i)->ppage     = (PTE_ADDR(*mypte)) >> PTXSHIFT;
-          (entries + i)->present   = (*mypte & PTE_P) >> 0;
-          (entries + i)->writable  = (*mypte & PTE_W) >> 1;
-          (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
-          (entries + i)->user      = 1;
-          (entries + i)->ref       = (*mypte & PTE_A) >> 5;
-          i++;
-        }
+      pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
+      if (uva2ka(pgdir, (char*) slider) != 0 && ((*mypte & PTE_E) >> 9) != 1){
+        valid++;
+        (entries + i)->pdx       = PDX(slider);
+        (entries + i)->ptx       = PTX(slider);
+        (entries + i)->ppage     = (PTE_ADDR(*mypte)) >> PTXSHIFT;
+        (entries + i)->present   = (*mypte & PTE_P) >> 0;
+        (entries + i)->writable  = (*mypte & PTE_W) >> 1;
+        (entries + i)->encrypted = (*mypte & PTE_E) >> 9;
+        (entries + i)->user      = 1;
+        (entries + i)->ref       = (*mypte & PTE_A) >> 5;
+        i++;
       }
       if(slider == 0){
         return valid;

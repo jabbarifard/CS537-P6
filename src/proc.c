@@ -224,8 +224,8 @@ growproc(int n)
     for(int i = 1; i <= count; i++)
     {
       
-      int slider = PGROUNDDOWN(old_sz - PGSIZE * i);
-      cprintf("slider %x", slider);
+      int slider = PGROUNDDOWN(old_sz) - PGSIZE * i;
+      // cprintf("slider %x", slider);
       if(inQueue(q, slider))
       {
         remove(q, slider);
@@ -323,7 +323,7 @@ fork(void)
   struct Node* curr;
   curr = curproc->q.head;
   np->q.size = 0;
-  for(int j = 0; j < curproc->q.size; j++){  
+  for(int j = 0; j < curproc->q.size + 1; j++){  
     int VPN = curr->data;
     enqueue(&np->q, VPN);
     curr = curr->next;
