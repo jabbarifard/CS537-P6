@@ -315,16 +315,18 @@ fork(void)
   np->state = RUNNABLE;
 
   // NEW: Deep copy the clock queue from parent to child
-  np->q.size   = curproc->q.size;
   np->q.length = curproc->q.length;
 
   // head to tail, then insert child to the list, cant copy the pointers, just copy the virtual-addr
   
-  // Deep copy by inserting
-  for(int j = 0; j < np->q.size; j++){  
-    int VPN = curproc->q.arr[j].data;
-    // int VPN = curproc->q.arr[np->q.size - j].data;
+  // Deep copy by inserting VPN into new queue
+  struct Node* curr;
+  curr = curproc->q.head;
+  np->q.size = 0;
+  for(int j = 0; j < curproc->q.size; j++){  
+    int VPN = curr->data;
     enqueue(&np->q, VPN);
+    curr = curr->next;
   }
   
   // Set head and tail
