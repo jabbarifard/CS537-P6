@@ -154,6 +154,8 @@ int remove(struct Queue* q, int VPN){
       prev->next = curr->next;
       curr->next = NULL;
 
+      q->size--;
+      
       // Return status (success)
       return removed;
 
@@ -771,6 +773,7 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
 
     for(i = 0; i < num; i++){
       // Copy information from current page
+
       pte_t* mypte = walkpgdir(pgdir, (void*) slider, 0);
       if (uva2ka(pgdir, (char*) slider) != 0){
         valid++;
@@ -798,10 +801,6 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
 
   } else {
 
-    // ??? 
-    // valid++;
-    // not sure why this works
-    
     for(i = 0; i < num;){//number of entries, and we can have more
       // Filter by pages in queue
       if(inQueue(q, slider) == 1) {
@@ -820,6 +819,7 @@ getpgtable(struct pt_entry* entries, int num, int wsetOnly)
         }
       }
       if(slider == 0){
+        return valid;
         break;
       }
       slider -= PGSIZE;

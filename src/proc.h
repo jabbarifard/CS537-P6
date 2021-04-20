@@ -49,7 +49,7 @@ struct Queue
   int length;
   struct Node* head;
   struct Node* tail;
-  struct Node arr[CLOCKSIZE];
+  struct Node  arr[CLOCKSIZE];
 };
 
 // Per-process state

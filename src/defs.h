@@ -137,6 +137,8 @@ int             dump_rawphymem(uint, char *);
 int             inQueue(struct Queue*, int);
 int             remove (struct Queue*, int);
 
+int             enqueue(struct Queue*, uint);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 

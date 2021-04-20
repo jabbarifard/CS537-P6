@@ -318,12 +318,21 @@ fork(void)
   np->q.size   = curproc->q.size;
   np->q.length = curproc->q.length;
 
-  for(int j = 0; j < np->q.size; j++){//head to tail, then insert child to the list, cant copy the pointers, just copy the virtual-addr
-    np->q.arr[j] = curproc->q.arr[j];
+  // head to tail, then insert child to the list, cant copy the pointers, just copy the virtual-addr
+  
+  // Deep copy by inserting
+  for(int j = 0; j < np->q.size; j++){  
+    int VPN = curproc->q.arr[j].data;
+    // int VPN = curproc->q.arr[np->q.size - j].data;
+    enqueue(&np->q, VPN);
   }
   
+  // Set head and tail
   np->q.head = &np->q.arr[0];
   np->q.tail = &np->q.arr[np->q.size];
+  
+  // Make sure tail's next is NULL
+  np->q.tail->next = NULL;
 
 
   release(&ptable.lock);
